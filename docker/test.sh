@@ -186,6 +186,11 @@ function update_docker_containers {
     cd /vagrant/docker/percona56 && docker build --rm -t ${NAME}_${MYSQL_IMAGE} .
 }
 
+function output_log_docker_container {
+    CID=`cat /var/run/${NAME}-${1}.cid`
+    docker logs -f ${CID}
+}
+
 case "$1" in
     start)
         start_docker_instance
@@ -202,6 +207,9 @@ case "$1" in
         ;;
     update)
         update_docker_containers
+        ;;
+    log)
+        output_log_docker_container $2 $3
         ;;
     *)
         log_success_msg "Usage: $0 {start|stop|restart|force-reload|update}"
