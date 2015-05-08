@@ -1,0 +1,4 @@
+FROM redis
+
+# Install modules
+

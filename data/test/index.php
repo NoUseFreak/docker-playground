@@ -18,3 +18,5 @@ $stmt = $pdo->query('SELECT * FROM test ORDER BY id DESC');
 while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
     echo $row['id'], "\t", $row['name'], "\n";
 }
+
+var_dump($_ENV);

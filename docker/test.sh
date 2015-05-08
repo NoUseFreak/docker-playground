@@ -13,20 +13,29 @@
 #                    system
 ### END INIT INFO
 
-# Source function library
-. /lib/lsb/init-functions
-
-
 NAME=docker-test
 DESC="Container"
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 DAEMON=/usr/bin/docker
 
-CIDPHPFILE=/var/run/${NAME}-php.cid
+MYSQL_IMAGE=percona
+REDIS_IMAGE=redis
+SOLR_IMAGE=solr
+RABBITMQ_IMAGE=rabbitmq
+PHPFPM_IMAGE=php56
+NGINX_IMAGE=nginx
+
+# Source function library
+. /lib/lsb/init-functions
+
+CIDREDISFILE=/var/run/${NAME}-redis.cid
+CIDSOLRFILE=/var/run/${NAME}-solr.cid
+CIDRABBITMQFILE=/var/run/${NAME}-rabbitmq.cid
+CIDPHPFPMFILE=/var/run/${NAME}-phpfpm.cid
 CIDNGINXFILE=/var/run/${NAME}-nginx.cid
 CIDMYSQLFILE=/var/run/${NAME}-mysql.cid
 
-test -x $DAEMON || exit 0
+test -x ${DAEMON} || exit 0
 
 # Ensure we have a PATH
 export PATH="${PATH:+$PATH:}/usr/sbin:/usr/bin:/sbin:/bin"
@@ -37,10 +46,14 @@ DATADIR_DOCKER=/var/www2
 EXPOSE_PORT=80
 MYSQL_EXPOSE_PORT=3306
 MYSQL_ROOT_PASSWORD=root
+SOLR_EXPOSE_PORT=8983
+
 
 CPATH=/tmp/test
 
 mkdir -p ${CPATH}
+mkdir -p /var/docker/data/${NAME}/mysql
+
 
 
 function is_running {
@@ -52,9 +65,30 @@ function is_running {
         fi
     fi
 
-    if [ -f "${CIDPHPFILE}" ]; then
-        PHPCID=`cat ${CIDPHPFILE}`
-        if [ `docker ps --no-trunc | awk '{ print $1 }' | grep ${PHPCID} | wc -l` != "0" ]; then
+    if [ -f "${CIDREDISFILE}" ]; then
+        REDISCID=`cat ${CIDREDISFILE}`
+        if [ `docker ps --no-trunc | awk '{ print $1 }' | grep ${REDISCID} | wc -l` != "0" ]; then
+            return 0
+        fi
+    fi
+    
+    if [ -f "${CIDSOLRFILE}" ]; then
+        SOLRCID=`cat ${CIDSOLRFILE}`
+        if [ `docker ps --no-trunc | awk '{ print $1 }' | grep ${SOLRCID} | wc -l` != "0" ]; then
+            return 0
+        fi
+    fi
+
+    if [ -f "${CIDRABBITMQFILE}" ]; then
+        RABBITMQCID=`cat ${CIDRABBITMQFILE}`
+        if [ `docker ps --no-trunc | awk '{ print $1 }' | grep ${RABBITMQCID} | wc -l` != "0" ]; then
+            return 0
+        fi
+    fi
+
+    if [ -f "${CIDPHPFPMFILE}" ]; then
+        PHPFPMCID=`cat ${CIDPHPFPMFILE}`
+        if [ `docker ps --no-trunc | awk '{ print $1 }' | grep ${PHPFPMCID} | wc -l` != "0" ]; then
             return 0
         fi
     fi
@@ -78,13 +112,22 @@ function start_docker_instance {
         exit 1
     fi
 
-    MYSQLCID=`docker run -d -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} -p ${MYSQL_EXPOSE_PORT}:3306 percona56`
+    SOLRCID=`docker run -d -p ${SOLR_EXPOSE_PORT}:8983 -v /var/docker/data/${NAME}/solr:/var/solr ${NAME}_${SOLR_IMAGE}`
+    echo ${SOLRCID} > ${CIDSOLRFILE}
+
+    MYSQLCID=`docker run -d -v /var/docker/data/${NAME}/mysql:/var/lib/mysql -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} -p ${MYSQL_EXPOSE_PORT}:3306 ${NAME}_${MYSQL_IMAGE}`
     echo ${MYSQLCID} > ${CIDMYSQLFILE}
 
-    PHPCID=`docker run -v ${DATADIR_LOCAL}:${DATADIR_DOCKER}:ro -d --link ${MYSQLCID}:mysql php56`
-    echo ${PHPCID} > ${CIDPHPFILE}
+    REDISCID=`docker run -d ${NAME}_${REDIS_IMAGE}`
+    echo ${REDISCID} > ${CIDREDISFILE}
 
-    NGINXCID=`docker run -v ${DATADIR_LOCAL}:${DATADIR_DOCKER}:ro  -d -p ${EXPOSE_PORT}:80 --link ${PHPCID}:php nginx_test`
+    RABBITMQCID=`docker run -d ${NAME}_${RABBITMQ_IMAGE}`
+    echo ${RABBITMQCID} > ${CIDRABBITMQFILE}
+
+    PHPFPMCID=`docker run -v ${DATADIR_LOCAL}:${DATADIR_DOCKER}:ro -d --link ${MYSQLCID}:mysql --link ${SOLRCID}:solr --link ${SOLRCID}:solr --link ${RABBITMQCID}:rabbitmq --link ${REDISCID}:redis ${NAME}_${PHPFPM_IMAGE}`
+    echo ${PHPFPMCID} > ${CIDPHPFPMFILE}
+
+    NGINXCID=`docker run -v ${DATADIR_LOCAL}:${DATADIR_DOCKER}:ro  -d -p ${EXPOSE_PORT}:80 --link ${PHPFPMCID}:php ${NAME}_${NGINX_IMAGE}`
     echo ${NGINXCID} > ${CIDNGINXFILE}
 
     log_end_msg 0
@@ -103,9 +146,18 @@ function stop_docker_instance {
 
     CIDMYSQL=`cat ${CIDMYSQLFILE}`
     docker rm -f ${CIDMYSQL} >> /dev/null
+    
+    CIDREDIS=`cat ${CIDREDISFILE}`
+    docker rm -f ${CIDREDIS} >> /dev/null
+    
+    CIDSOLR=`cat ${CIDSOLRFILE}`
+    docker rm -f ${CIDSOLR} >> /dev/null
+    
+    CIDRABBITMQ=`cat ${CIDRABBITMQFILE}`
+    docker rm -f ${CIDRABBITMQ} >> /dev/null
 
-    CIDPHP=`cat ${CIDPHPFILE}`
-    docker rm -f ${CIDPHP} >> /dev/null
+    CIDPHPFPM=`cat ${CIDPHPFPMFILE}`
+    docker rm -f ${CIDPHPFPM} >> /dev/null
 
     CIDNGINX=`cat ${CIDNGINXFILE}`
     docker rm -f ${CIDNGINX} >> /dev/null
@@ -131,10 +183,14 @@ function status_docker_instance {
 }
 
 function update_docker_containers {
-    cd /vagrant/docker/nginx && docker build --rm -t nginx_test .
-    cd /vagrant/docker/php56 && docker build --rm -t php56 .
-    cd /vagrant/docker/percona56 && docker build --rm -t percona56 .
+    cd /vagrant/docker/nginx && docker build --rm -t ${NAME}_${NGINX_IMAGE} .
+    cd /vagrant/docker/redis && docker build --rm -t ${NAME}_${REDIS_IMAGE} .
+    cd /vagrant/docker/solr && docker build --rm -t ${NAME}_${SOLR_IMAGE} .
+    cd /vagrant/docker/rabbitmq && docker build --rm -t ${NAME}_${RABBITMQ_IMAGE} .
+    cd /vagrant/docker/php56 && docker build --rm -t ${NAME}_${PHPFPM_IMAGE} .
+    cd /vagrant/docker/percona56 && docker build --rm -t ${NAME}_${MYSQL_IMAGE} .
 }
+
 case "$1" in
     start)
         start_docker_instance
