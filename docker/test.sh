@@ -41,20 +41,15 @@ test -x ${DAEMON} || exit 0
 export PATH="${PATH:+$PATH:}/usr/sbin:/usr/bin:/sbin:/bin"
 
 
-DATADIR_LOCAL=/vagrant/data/test
-DATADIR_DOCKER=/var/www2
+DATADIR_LOCAL=/vagrant
+DATADIR_DOCKER=/var/app
 EXPOSE_PORT=80
 MYSQL_EXPOSE_PORT=3306
 MYSQL_ROOT_PASSWORD=root
 SOLR_EXPOSE_PORT=8983
 
-
-CPATH=/tmp/test
-
-mkdir -p ${CPATH}
 mkdir -p /var/docker/data/${NAME}/mysql
-
-
+mkdir -p /var/docker/data/${NAME}/solr
 
 function is_running {
 
