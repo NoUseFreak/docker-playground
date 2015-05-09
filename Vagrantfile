@@ -9,7 +9,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     docker.vm.network :private_network, ip: "33.33.33.30"
     docker.vm.hostname = 'docker'
     docker.vm.provider :virtualbox do |vb|
-        vb.memory = 1024
+        vb.memory = 2048
         vb.cpus = 2
         vb.customize ["modifyvm", :id, "--natdnshostresolver1", "on"]
     end
