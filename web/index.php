@@ -1,8 +1,7 @@
 <?php
-echo '<pre>';
-
+//var_dump($_ENV, $_SERVER);die;
 try {
-    $pdo = new \PDO('mysql:host=mysql;dbname=test', 'root', 'root');
+    $pdo = new \PDO($_ENV['DB_URI'], $_ENV['DB_USER'], $_ENV['DB_PASS']);
 } catch (\PDOException $e) {
     if ($e->getCode() == 1049) {
         $pdo = new \PDO('mysql:host=mysql', 'root', 'root');
@@ -11,12 +10,24 @@ try {
     }
 }
 
+if (isset($_GET['add'])) {
+    $pdo->exec('INSERT INTO test (`name`) VALUES ("'.uniqid('', true).'")');
 
-$pdo->exec('INSERT INTO test (`name`) VALUES ("'.uniqid('', true).'")');
+    header('Location: /');
+    exit();
+}
 $stmt = $pdo->query('SELECT * FROM test ORDER BY id DESC');
 
-while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
-    echo $row['id'], "\t", $row['name'], "\n";
-}
+echo '<pre>';
+echo '<a href="/">list</a> ';
+echo '<a href="/?add">add</a> ';
+echo '<a href="/?env">env</a> ';
+echo "\n","\n";
 
-var_dump($_ENV);
+if (isset($_GET['env'])) {
+    var_dump($_ENV);
+} else {
+    while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
+        echo $row['id'], "\t", $row['name'], "\n";
+    }
+}

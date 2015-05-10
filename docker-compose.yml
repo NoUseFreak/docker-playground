@@ -1,0 +1,65 @@
+web:
+  build: ./docker/nginx
+  ports:
+    - "80:80"
+  volumes:
+    - /vagrant:/var/app
+  links:
+    - phpfpm:php
+  restart: always
+
+phpfpm:
+  build: ./docker/phpfpm
+  volumes:
+    - /vagrant:/var/app
+  links:
+    - db:mysql
+    - redis
+    - rabbitmq
+    - solr
+  restart: always
+  environment:
+    DB_URI: mysql:host=mysql;dbname=test
+    DB_USER: root
+    DB_PASS: root
+
+php:
+  build: ./docker/php
+  volumes:
+    - /vagrant:/var/app
+  links:
+    - db:mysql
+    - redis
+    - rabbitmq
+    - solr
+  restart: always
+  environment:
+    DB_URI: mysql:host=mysql;dbname=test
+    DB_USER: root
+    DB_PASS: root
+
+db:
+  image: percona:5.6
+  restart: always
+  volumes:
+    - /var/docker/data/mysql:/var/lib/mysql
+  environment:
+    MYSQL_ROOT_PASSWORD: root
+  ports:
+    - 3306
+
+redis:
+  image: redis
+  restart: always
+
+rabbitmq:
+  image: rabbitmq
+  restart: always
+
+solr:
+  image: makuk66/docker-solr
+  restart: always
+  ports:
+    - "8983:8983"
+  volumes:
+    - /var/docker/data/solr:/var/solr

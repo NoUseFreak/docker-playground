@@ -1,4 +1,0 @@
-FROM rabbitmq
-
-# Install modules
-
