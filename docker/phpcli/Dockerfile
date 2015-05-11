@@ -1,4 +1,4 @@
-FROM php:5.6
+FROM php:5.6-cli
 
 # Install modules
 RUN apt-get update && apt-get install -y \
@@ -11,4 +11,8 @@ RUN apt-get update && apt-get install -y \
         libicu-dev \
         libcurl4-gnutls-dev
 
-RUN docker-php-ext-install gd pdo_mysql mcrypt curl
+RUN docker-php-ext-install gd pdo_mysql mcrypt
+
+WORKDIR /code
+
+CMD ["/bin/bash"]

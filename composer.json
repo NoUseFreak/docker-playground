@@ -1,0 +1,12 @@
+{
+    "name": "nousefreak/docker-playground",
+    "authors": [
+        {
+            "name": "Dries De Peuter",
+            "email": "dries@nousefreak.be"
+        }
+    ],
+    "require": {
+      "phpunit/phpunit": "~4.0"
+    }
+}
