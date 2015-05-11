@@ -34,3 +34,11 @@ $ docker run -v /vagrant:/code phpunit phpunit
 ```bash
 $ docker-compose -f /vagrant/docker-compose.yml logs
 ```
+
+# Experiments
+
+## Reactphp
+
+```bash
+$ docker run -d -v /vagrant:/code -p 1337:1337 --name=reactphp phpcli php src/react.php
+```
