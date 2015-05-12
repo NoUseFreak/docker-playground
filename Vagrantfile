@@ -12,6 +12,11 @@ wget -qO- https://get.docker.com/ | sh #>> /dev/null
 
 # Docker configuration
 sudo usermod -aG docker vagrant
+sudo sh -c 'echo DOCKER_OPTS=\"-H 33.33.33.30:2375\" >> /etc/default/docker'
+sudo sh -c 'echo export DOCKER_HOST=33.33.33.30:2375 >> /etc/environment'
+
+# setup shipyard
+sudo docker run --rm -v /var/run/docker.sock:/var/run/docker.sock shipyard/deploy start
 
 # Create service containers
 sudo docker build -t phpcli /vagrant/docker/phpcli/
