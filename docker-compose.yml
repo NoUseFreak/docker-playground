@@ -10,6 +10,7 @@ web:
 
 phpfpm:
   build: ./docker/phpfpm
+  #image: brunoric/hhvm:deb
   volumes:
     - /vagrant:/var/app
   links:

@@ -22,9 +22,13 @@ echo '<pre>';
 echo '<a href="/">list</a> ';
 echo '<a href="/?add">add</a> ';
 echo '<a href="/?env">env</a> ';
+echo '<a href="/?info">info</a> ';
 echo "\n","\n";
 
-if (isset($_GET['env'])) {
+if (isset($_GET['info'])) {
+    echo '</pre>';
+    phpinfo();
+} elseif (isset($_GET['env'])) {
     var_dump($_ENV);
 } else {
     while ($row = $stmt->fetch(\PDO::FETCH_ASSOC)) {
